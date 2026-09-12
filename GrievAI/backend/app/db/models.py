@@ -45,3 +45,10 @@ class Complaint(Base):
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class ComplaintTracker(Base):
+    __tablename__ = "complaint_tracker"
+
+    id = Column(Integer, primary_key=True, index=True)
+    complaint_id = Column(String(36), index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

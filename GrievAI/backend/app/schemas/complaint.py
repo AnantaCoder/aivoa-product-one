@@ -52,6 +52,14 @@ class ComplaintCreate(CamelModel):
     description: str
     initial_severity: str
     priority: str
+    
+    # Optional AI fields that might be passed from frontend
+    ai_summary: Optional[str] = None
+    completeness_score: Optional[int] = None
+    missing_fields: Optional[Any] = None
+    risk_category: Optional[str] = None
+    risk_rationale: Optional[str] = None
+    suggested_capa: Optional[str] = None
 
 class ComplaintResponse(ComplaintCreate):
     id: str
@@ -66,6 +74,10 @@ class ComplaintResponse(ComplaintCreate):
     risk_category: Optional[str] = None
     risk_rationale: Optional[str] = None
     suggested_capa: Optional[str] = None
+
+class PaginatedComplaintsResponse(CamelModel):
+    items: List[ComplaintResponse]
+    total: int
 
 class ChatRequest(BaseModel):
     message: str

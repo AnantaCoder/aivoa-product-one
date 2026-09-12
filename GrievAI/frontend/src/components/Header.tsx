@@ -3,13 +3,16 @@ import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { setTheme } from '../features/complaint/complaintSlice';
 import { Moon, Sun } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
+import { useGetComplaintsQuery } from '../services/complaintApi';
 
 export const Header: React.FC = () => {
   const dispatch = useAppDispatch();
   const theme = useAppSelector((state) => state.complaint.theme);
-  const pastComplaintsCount = useAppSelector(
-    (state) => state.complaint.pastComplaints.length
-  );
+  
+  // We use limit: 1 just to get the total count efficiently without fetching all data.
+  // Note: Since RTK Query caches, it might use the existing cache if another component requested it.
+  const { data } = useGetComplaintsQuery({ skip: 0, limit: 1 });
+  const pastComplaintsCount = data?.total || 0;
 
   const handleToggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -48,7 +51,7 @@ export const Header: React.FC = () => {
             to="/analyze"
             className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
           >
-            Log Complaint (/analyze)
+            Complaint Bot
           </NavLink>
           <NavLink
             to="/history"

@@ -1,33 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-
-export interface ComplaintFormData {
-  complaintSource: string;
-  customerName: string;
-  productName: string;
-  productStrength: string;
-  batchNumber: string;
-  manufacturingDate: string;
-  expiryDate: string;
-  quantityAffected: string;
-  complaintType: string;
-  complaintDate: string;
-  description: string;
-  initialSeverity: string;
-  priority: string;
-  riskCategory?: string;
-  riskRationale?: string;
-  suggestedCapa?: string;
-  aiSummary?: string;
-  status?: string;
-  ticketNumber?: string;
-}
-
-export interface ComplaintRecord extends ComplaintFormData {
-  id: string;
-  ticketNumber: string;
-  status: 'Pending Triage' | 'Under Investigation' | 'CAPA Initiated' | 'Resolved';
-  createdAt: string;
-}
+import type { ComplaintFormData, ComplaintRecord } from '../../types/complaint';
 
 export interface ChatMessage {
   id: string;

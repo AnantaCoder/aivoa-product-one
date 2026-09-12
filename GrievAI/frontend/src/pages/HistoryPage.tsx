@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppDispatch } from '../app/hooks';
-import { populateForm, type ComplaintRecord } from '../features/complaint/complaintSlice';
+import { populateForm } from '../features/complaint/complaintSlice';
+import type { ComplaintRecord } from '../types/complaint';
 import { useNavigate } from 'react-router-dom';
 import { useGetComplaintsQuery } from '../services/complaintApi';
 import {
@@ -8,19 +9,23 @@ import {
   Filter,
   PlusCircle,
   Eye,
-  Package,
-  AlertTriangle,
-  FileCheck,
-  X,
   ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+import { HistoryStats } from '../components/history/HistoryStats';
+import { InspectModal } from '../components/history/InspectModal';
 
 export const HistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   
-  const { data: fetchedComplaints, isLoading, isError } = useGetComplaintsQuery();
-  const pastComplaints = fetchedComplaints || [];
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
+  const { data: fetchedComplaints } = useGetComplaintsQuery({ skip: (page - 1) * limit, limit });
+  const pastComplaints = fetchedComplaints?.items || [];
+  const totalBackendCount = fetchedComplaints?.total || 0;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState('ALL');
@@ -46,7 +51,7 @@ export const HistoryPage: React.FC = () => {
     return matchesSearch && matchesSeverity && matchesStatus;
   });
 
-  const totalCount = pastComplaints.length;
+  const totalCount = totalBackendCount;
   const pendingCount = pastComplaints.filter((c) => c.status === 'Pending Triage').length;
   const criticalCount = pastComplaints.filter(
     (c) => c.initialSeverity === 'Critical' || c.initialSeverity === 'Major'
@@ -107,47 +112,12 @@ export const HistoryPage: React.FC = () => {
       </div>
 
       {/* KPI Stats Cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>
-            <FileCheck size={20} />
-          </div>
-          <div>
-            <div className="stat-value">{totalCount}</div>
-            <div className="stat-label">Total Logged</div>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <div className="stat-value">{pendingCount}</div>
-            <div className="stat-label">Pending Triage</div>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <div className="stat-value">{criticalCount}</div>
-            <div className="stat-label">Critical / Major</div>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
-            <Package size={20} />
-          </div>
-          <div>
-            <div className="stat-value">{resolvedCount}</div>
-            <div className="stat-label">Resolved Records</div>
-          </div>
-        </div>
-      </div>
+      <HistoryStats
+        totalCount={totalCount}
+        pendingCount={pendingCount}
+        criticalCount={criticalCount}
+        resolvedCount={resolvedCount}
+      />
 
       {/* Filter and Search Bar */}
       <div className="history-toolbar">
@@ -209,7 +179,7 @@ export const HistoryPage: React.FC = () => {
               <th>Customer &amp; Source</th>
               <th>Complaint Type</th>
               <th>Severity</th>
-              <th>Priority</th>
+              <th>Risk Category</th>
               <th>Status</th>
               <th>Logged At</th>
               <th style={{ textAlign: 'right' }}>Action</th>
@@ -252,7 +222,7 @@ export const HistoryPage: React.FC = () => {
                     </span>
                   </td>
                   <td>
-                    <span className="priority-pill">{c.priority || 'Normal'}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{c.riskCategory || 'N/A'}</span>
                   </td>
                   <td>
                     <span className={`badge-pill ${getStatusBadgeClass(c.status)}`}>
@@ -280,105 +250,44 @@ export const HistoryPage: React.FC = () => {
             )}
           </tbody>
         </table>
+        
+        {/* Pagination Controls */}
+        <div className="pagination-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderTop: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            Showing {filtered.length > 0 ? (page - 1) * limit + 1 : 0} to {Math.min(page * limit, totalCount)} of {totalCount} entries
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className="btn-secondary"
+              style={{ padding: '6px 10px', fontSize: '13px' }}
+              disabled={page === 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              <ChevronLeft size={16} />
+              Prev
+            </button>
+            <button
+              className="btn-secondary"
+              style={{ padding: '6px 10px', fontSize: '13px' }}
+              disabled={page * limit >= totalCount}
+              onClick={() => setPage(p => p + 1)}
+            >
+              Next
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Inspect Modal Drawer */}
       {selectedRecord && (
-        <div className="modal-backdrop" onClick={() => setSelectedRecord(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="ticket-badge">{selectedRecord.ticketNumber}</span>
-                  <span className={`badge-pill ${getStatusBadgeClass(selectedRecord.status)}`}>
-                    ● {selectedRecord.status}
-                  </span>
-                </div>
-                <h3 style={{ fontSize: '18px', marginTop: '6px', color: 'var(--text-primary)' }}>
-                  {selectedRecord.productName}
-                </h3>
-              </div>
-              <button
-                className="action-btn-sm"
-                style={{ padding: '6px' }}
-                onClick={() => setSelectedRecord(null)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="inspect-grid">
-                <div className="inspect-item">
-                  <span className="inspect-label">Customer Name</span>
-                  <span className="inspect-value">{selectedRecord.customerName || 'N/A'}</span>
-                </div>
-                <div className="inspect-item">
-                  <span className="inspect-label">Complaint Source</span>
-                  <span className="inspect-value">{selectedRecord.complaintSource || 'N/A'}</span>
-                </div>
-                <div className="inspect-item">
-                  <span className="inspect-label">Product Strength / Grade</span>
-                  <span className="inspect-value">{selectedRecord.productStrength || 'N/A'}</span>
-                </div>
-                <div className="inspect-item">
-                  <span className="inspect-label">Batch / Lot Number</span>
-                  <span className="inspect-value font-mono">{selectedRecord.batchNumber || 'N/A'}</span>
-                </div>
-                <div className="inspect-item">
-                  <span className="inspect-label">Manufacturing Date</span>
-                  <span className="inspect-value">{selectedRecord.manufacturingDate || 'N/A'}</span>
-                </div>
-                <div className="inspect-item">
-                  <span className="inspect-label">Expiry Date</span>
-                  <span className="inspect-value">{selectedRecord.expiryDate || 'N/A'}</span>
-                </div>
-                <div className="inspect-item">
-                  <span className="inspect-label">Quantity Affected</span>
-                  <span className="inspect-value">{selectedRecord.quantityAffected ? `${selectedRecord.quantityAffected} kg` : 'N/A'}</span>
-                </div>
-                <div className="inspect-item">
-                  <span className="inspect-label">Complaint Type</span>
-                  <span className="inspect-value">{selectedRecord.complaintType || 'N/A'}</span>
-                </div>
-                <div className="inspect-item">
-                  <span className="inspect-label">Initial Severity</span>
-                  <span className={`badge-pill ${getSeverityBadgeClass(selectedRecord.initialSeverity)}`}>
-                    {selectedRecord.initialSeverity || 'N/A'}
-                  </span>
-                </div>
-                <div className="inspect-item">
-                  <span className="inspect-label">Priority</span>
-                  <span className="priority-pill">{selectedRecord.priority || 'N/A'}</span>
-                </div>
-              </div>
-
-              <div style={{ marginTop: '16px' }}>
-                <span className="inspect-label">Detailed Complaint Description</span>
-                <p className="inspect-description">
-                  {selectedRecord.description || 'No detailed description provided.'}
-                </p>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setSelectedRecord(null)}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => handleInspectAndEdit(selectedRecord)}
-              >
-                Load into /analyze Form
-              </button>
-            </div>
-          </div>
-        </div>
+        <InspectModal
+          selectedRecord={selectedRecord}
+          onClose={() => setSelectedRecord(null)}
+          onInspectAndEdit={handleInspectAndEdit}
+          getSeverityBadgeClass={getSeverityBadgeClass}
+          getStatusBadgeClass={getStatusBadgeClass}
+        />
       )}
     </div>
   );

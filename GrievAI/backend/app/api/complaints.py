@@ -4,14 +4,15 @@ from typing import List, Optional
 import json
 
 from app.db.database import get_db
-from app.db.models import Complaint
+from app.services import complaint_service
 from app.schemas.complaint import (
     ComplaintResponse, 
     ComplaintCreate, 
     ExtractedComplaintResponse, 
     ComplaintExtractRequest,
     RiskAssessmentRequest,
-    RiskAssessmentResponse
+    RiskAssessmentResponse,
+    PaginatedComplaintsResponse
 )
 from app.parsers.document import parse_document
 from app.agent.graph import run_extraction_agent
@@ -139,40 +140,22 @@ async def create_complaint(complaint_data: ComplaintCreate, db: Session = Depend
     """
     Save a new complaint to the database.
     """
-    # Create DB model
-    new_complaint = Complaint(**complaint_data.model_dump(exclude_unset=True))
-    
-    # Set AI specific fields if they exist in the incoming data
-    # (Since ComplaintCreate doesn't have AI fields, they might be passed separately, 
-    # but for this simple version we trust whatever frontend sends or defaults to DB setup)
-    
-    db.add(new_complaint)
-    db.commit()
-    db.refresh(new_complaint)
-    
-    # Generate an auto-ticket number if none
-    if not new_complaint.ticket_number:
-        new_complaint.ticket_number = f"QA-{new_complaint.created_at.year}-{new_complaint.id[:6].upper()}"
-        db.commit()
-        db.refresh(new_complaint)
-        
-    return new_complaint
+    return complaint_service.create_new_complaint(db, complaint_data)
 
 @router.get("")
-@router.get("/", response_model=List[ComplaintResponse])
+@router.get("/", response_model=PaginatedComplaintsResponse)
 async def list_complaints(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
-    Get a list of all complaints.
+    Get a list of all complaints with pagination and total count.
     """
-    complaints = db.query(Complaint).order_by(Complaint.created_at.desc()).offset(skip).limit(limit).all()
-    return complaints
+    return complaint_service.get_paginated_complaints(db, skip=skip, limit=limit)
 
 @router.get("/{complaint_id}", response_model=ComplaintResponse)
 async def get_complaint(complaint_id: str, db: Session = Depends(get_db)):
     """
     Get a specific complaint by ID.
     """
-    complaint = db.query(Complaint).filter(Complaint.id == complaint_id).first()
+    complaint = complaint_service.get_complaint_by_id(db, complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
     return complaint

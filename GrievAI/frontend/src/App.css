@@ -948,7 +948,7 @@
 }
 
 .complaint-table th {
-  padding: 14px 18px;
+  padding: 10px 12px;
   background: var(--bg-card-header);
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-section-header);
@@ -957,7 +957,7 @@
   text-transform: uppercase;
   letter-spacing: 0.6px;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .th-content {
@@ -967,7 +967,7 @@
 }
 
 .complaint-table td {
-  padding: 14px 18px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   vertical-align: middle;
@@ -1170,6 +1170,8 @@
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-secondary);
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .modal-footer {
