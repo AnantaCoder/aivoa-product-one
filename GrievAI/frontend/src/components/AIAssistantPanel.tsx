@@ -4,15 +4,18 @@ import {
   setAnalyzing,
   setProgress,
   setAnalysisSuccess,
+  setAnalysisError,
   addChatMessage,
   togglePasteModal,
   setPastedText,
+  populateForm,
 } from '../features/complaint/complaintSlice';
 import {
   useAnalyzeComplaintMutation,
+  useChatWithCopilotMutation,
   normalizeAnalysisResponse,
 } from '../services/complaintApi';
-import { sampleComplaintEmailText, samplePharmaComplaint } from '../utils/sampleData';
+
 import {
   Sparkles,
   UploadCloud,
@@ -24,6 +27,7 @@ import {
   X,
   FileCheck,
   Loader2,
+  Paperclip,
 } from 'lucide-react';
 
 export const AIAssistantPanel: React.FC = () => {
@@ -39,11 +43,13 @@ export const AIAssistantPanel: React.FC = () => {
   } = useAppSelector((state) => state.complaint);
 
   const [analyzeComplaintMutation] = useAnalyzeComplaintMutation();
+  const [chatWithCopilot] = useChatWithCopilotMutation();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [userQuery, setUserQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chat
@@ -88,17 +94,8 @@ export const AIAssistantPanel: React.FC = () => {
       );
     } catch (err) {
       clearInterval(interval);
-      console.warn('Backend /analyze call failed or backend not running yet:', err);
-      
-      // Graceful fallback to realistic pharma data so UI demo functions seamlessly
-      setTimeout(() => {
-        dispatch(
-          setAnalysisSuccess({
-            data: samplePharmaComplaint,
-            summary: `Extracted from "${file.name}": Product Ceftriaxone Sodium 1g (Batch CTX-2024-09B). Note: Backend /analyze endpoint was queried. Mock extraction populated for preview.`,
-          })
-        );
-      }, 500);
+      console.error('Backend /analyze call failed:', err);
+      dispatch(setAnalysisError('Failed to extract data from the document. Please ensure the backend is running.'));
     }
   };
 
@@ -133,15 +130,8 @@ export const AIAssistantPanel: React.FC = () => {
       );
     } catch (err) {
       clearInterval(interval);
-      console.warn('Backend /analyze call failed or backend not running yet:', err);
-      setTimeout(() => {
-        dispatch(
-          setAnalysisSuccess({
-            data: samplePharmaComplaint,
-            summary: 'Analyzed pasted text content. Extracted 12 complaint parameters into form fields.',
-          })
-        );
-      }, 400);
+      console.error('Backend /analyze call failed:', err);
+      dispatch(setAnalysisError('Failed to extract data from the text. Please ensure the backend is running.'));
     }
   };
 
@@ -162,7 +152,7 @@ export const AIAssistantPanel: React.FC = () => {
     }
   };
 
-  const handleChatSend = (e: React.FormEvent) => {
+  const handleChatSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userQuery.trim()) return;
 
@@ -170,32 +160,24 @@ export const AIAssistantPanel: React.FC = () => {
     dispatch(addChatMessage({ sender: 'user', text: query }));
     setUserQuery('');
 
-    // Generate intelligent contextual response
-    setTimeout(() => {
-      let reply = '';
-      const q = query.toLowerCase();
+    try {
+      const response = await chatWithCopilot({
+        message: query,
+        complaint_data: form,
+        history: chatMessages.slice(-5) // Send last 5 messages for context
+      }).unwrap();
 
-      if (q.includes('batch') || q.includes('expiry') || q.includes('date')) {
-        reply = `Batch Number: ${form.batchNumber || 'CTX-2024-09B'}, Manufacturing Date: ${form.manufacturingDate || '2024-02-18'}, Expiry Date: ${form.expiryDate || '2026-02-17'}.`;
-      } else if (q.includes('root cause') || q.includes('cause')) {
-        reply = `Initial root cause hypothesis: Incomplete lyophilization or vial seal compromise leading to particulate turbidity upon sterile reconstitution. Recommended immediate sample testing under USP <788>.`;
-      } else if (q.includes('capa') || q.includes('corrective')) {
-        reply = `Recommended CAPA: 1) Quarantine remaining 1,250 vials of batch CTX-2024-09B. 2) Perform visual inspection & seal integrity test on retain samples. 3) Issue QA alert to dispensing pharmacy.`;
-      } else if (q.includes('summary') || q.includes('summarize')) {
-        reply = `Summary: Major complaint received from ${form.customerName || 'Customer'} regarding ${form.productName || 'product'} (${form.productStrength || '1g vial'}). Reported issue: ${form.description || 'Particulate matter in solution'}. Priority set to ${form.priority || 'High'}.`;
-      } else if (q.includes('severity') || q.includes('priority')) {
-        reply = `This complaint is currently triaged as Severity: ${form.initialSeverity || 'Major'}, Priority: ${form.priority || 'High'} due to sterile injectable administration risk.`;
-      } else {
-        reply = `Regarding "${query}": The AI assistant has linked this to Product "${form.productName || 'Pharmaceutical Product'}" (Batch: ${form.batchNumber || 'Pending'}). All related QA protocols are ready for triage.`;
+      dispatch(addChatMessage({ sender: 'ai', text: response.reply }));
+
+      if (response.form_updates && Object.keys(response.form_updates).length > 0) {
+        dispatch(populateForm(response.form_updates));
       }
-
-      dispatch(addChatMessage({ sender: 'ai', text: reply }));
-    }, 450);
+    } catch (error) {
+      console.error('Chat error:', error);
+      dispatch(addChatMessage({ sender: 'ai', text: 'Sorry, I encountered an error while processing your request.' }));
+    }
   };
 
-  const handleLoadSampleEmail = () => {
-    dispatch(setPastedText(sampleComplaintEmailText));
-  };
 
   return (
     <div className="panel-card">
@@ -285,14 +267,6 @@ export const AIAssistantPanel: React.FC = () => {
               <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                 Paste Raw Email or Report:
               </span>
-              <button
-                type="button"
-                className="action-btn-sm"
-                onClick={handleLoadSampleEmail}
-                style={{ fontSize: '11px', padding: '3px 8px' }}
-              >
-                Insert Sample Email
-              </button>
             </div>
             <textarea
               className="form-textarea"
@@ -413,10 +387,31 @@ export const AIAssistantPanel: React.FC = () => {
           </div>
 
           {/* Chat Input Bar */}
-          <form onSubmit={handleChatSend} className="chat-input-row">
+          <form onSubmit={handleChatSend} className="chat-input-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn-icon"
+              title="Upload document"
+              onClick={() => chatFileInputRef.current?.click()}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-muted)' }}
+            >
+              <Paperclip size={18} />
+            </button>
+            <input
+              ref={chatFileInputRef}
+              type="file"
+              accept=".pdf,.docx,.txt,.eml"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  handleFileChange(e.target.files[0]);
+                }
+              }}
+            />
             <input
               type="text"
               className="chat-input"
+              style={{ flex: 1 }}
               placeholder="Ask me anything about this complaint..."
               value={userQuery}
               onChange={(e) => setUserQuery(e.target.value)}

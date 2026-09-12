@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../app/hooks';
+import { useAppDispatch } from '../app/hooks';
 import { populateForm, type ComplaintRecord } from '../features/complaint/complaintSlice';
 import { useNavigate } from 'react-router-dom';
+import { useGetComplaintsQuery } from '../services/complaintApi';
 import {
   Search,
   Filter,
@@ -17,7 +18,9 @@ import {
 export const HistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const pastComplaints = useAppSelector((state) => state.complaint.pastComplaints);
+  
+  const { data: fetchedComplaints, isLoading, isError } = useGetComplaintsQuery();
+  const pastComplaints = fetchedComplaints || [];
 
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState('ALL');
@@ -26,18 +29,19 @@ export const HistoryPage: React.FC = () => {
 
   // Filter complaints
   const filtered = pastComplaints.filter((c) => {
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-      c.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.complaintType.toLowerCase().includes(searchTerm.toLowerCase());
+      (c.ticketNumber || '').toLowerCase().includes(searchLower) ||
+      (c.productName || '').toLowerCase().includes(searchLower) ||
+      (c.batchNumber || '').toLowerCase().includes(searchLower) ||
+      (c.customerName || '').toLowerCase().includes(searchLower) ||
+      (c.complaintType || '').toLowerCase().includes(searchLower);
 
     const matchesSeverity =
-      severityFilter === 'ALL' || c.initialSeverity.toUpperCase() === severityFilter.toUpperCase();
+      severityFilter === 'ALL' || (c.initialSeverity || '').toUpperCase() === severityFilter.toUpperCase();
 
     const matchesStatus =
-      statusFilter === 'ALL' || c.status.toUpperCase() === statusFilter.toUpperCase();
+      statusFilter === 'ALL' || (c.status || '').toUpperCase() === statusFilter.toUpperCase();
 
     return matchesSearch && matchesSeverity && matchesStatus;
   });
@@ -54,7 +58,8 @@ export const HistoryPage: React.FC = () => {
     navigate('/analyze');
   };
 
-  const getSeverityBadgeClass = (sev: string) => {
+  const getSeverityBadgeClass = (sev?: string) => {
+    if (!sev) return 'badge-severity-default';
     switch (sev.toLowerCase()) {
       case 'critical':
         return 'badge-severity-critical';
@@ -67,7 +72,8 @@ export const HistoryPage: React.FC = () => {
     }
   };
 
-  const getStatusBadgeClass = (st: string) => {
+  const getStatusBadgeClass = (st?: string) => {
+    if (!st) return 'badge-status-default';
     switch (st.toLowerCase()) {
       case 'pending triage':
         return 'badge-status-triage';

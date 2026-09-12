@@ -14,6 +14,12 @@ export interface ComplaintFormData {
   description: string;
   initialSeverity: string;
   priority: string;
+  riskCategory?: string;
+  riskRationale?: string;
+  suggestedCapa?: string;
+  aiSummary?: string;
+  status?: string;
+  ticketNumber?: string;
 }
 
 export interface ComplaintRecord extends ComplaintFormData {
@@ -60,6 +66,10 @@ const initialFormData: ComplaintFormData = {
   description: '',
   initialSeverity: '',
   priority: '',
+  riskCategory: '',
+  riskRationale: '',
+  suggestedCapa: '',
+  aiSummary: '',
 };
 
 const initialChatMessages: ChatMessage[] = [
@@ -71,88 +81,7 @@ const initialChatMessages: ChatMessage[] = [
   },
 ];
 
-const initialPastComplaints: ComplaintRecord[] = [
-  {
-    id: 'CMP-8812',
-    ticketNumber: 'QA-2024-101',
-    complaintSource: 'Global Pharmacovigilance & Hospital Distribution',
-    customerName: 'St. Jude Memorial Hospital / Dr. Elena Rostova',
-    productName: 'Ceftriaxone Sodium for Injection USP',
-    productStrength: '1g / Vial (Lyophilized Powder, Sterile)',
-    batchNumber: 'CTX-2024-09B',
-    manufacturingDate: '2024-02-18',
-    expiryDate: '2026-02-17',
-    quantityAffected: '1250',
-    complaintType: 'Particulate Matter & Reconstitution Turbidity',
-    complaintDate: '2024-09-11',
-    description:
-      'Turbidity upon reconstitution exceeding USP <788> standards. Micro-fractures detected on rubber crimp seal in two vials.',
-    initialSeverity: 'Major',
-    priority: 'High',
-    status: 'Pending Triage',
-    createdAt: '2024-09-11 09:30',
-  },
-  {
-    id: 'CMP-8809',
-    ticketNumber: 'QA-2024-098',
-    complaintSource: 'Apex Pharma Distributors',
-    customerName: 'Metro Health Care Pharmacy',
-    productName: 'Amoxicillin Trihydrate Capsules IP',
-    productStrength: '500 mg',
-    batchNumber: 'AMX-2024-44A',
-    manufacturingDate: '2024-01-10',
-    expiryDate: '2026-01-09',
-    quantityAffected: '450',
-    complaintType: 'Packaging & Seal Integrity',
-    complaintDate: '2024-09-08',
-    description:
-      'Blister foil delamination observed in outer packaging cartons during routine inventory inspection.',
-    initialSeverity: 'Minor',
-    priority: 'Medium',
-    status: 'Under Investigation',
-    createdAt: '2024-09-08 14:15',
-  },
-  {
-    id: 'CMP-8794',
-    ticketNumber: 'QA-2024-092',
-    complaintSource: 'Internal Quality Assurance / Stability Lab',
-    customerName: 'Novartis Supply Chain',
-    productName: 'Metformin Hydrochloride API',
-    productStrength: 'EP Grade Powder (Micronized)',
-    batchNumber: 'MET-2023-712',
-    manufacturingDate: '2023-11-05',
-    expiryDate: '2027-11-04',
-    quantityAffected: '2500',
-    complaintType: 'Assay Variance & Moisture Content',
-    complaintDate: '2024-08-28',
-    description:
-      'Slight assay fluctuation detected in 9-month accelerated stability test chamber #4.',
-    initialSeverity: 'Critical',
-    priority: 'Critical',
-    status: 'CAPA Initiated',
-    createdAt: '2024-08-28 11:00',
-  },
-  {
-    id: 'CMP-8750',
-    ticketNumber: 'QA-2024-085',
-    complaintSource: 'Direct Clinic Reporting',
-    customerName: 'Apollo Hospitals Clinical Pharmacy',
-    productName: 'Paracetamol Infusion 10mg/mL',
-    productStrength: '100 mL IV Bottle',
-    batchNumber: 'PCM-2024-11C',
-    manufacturingDate: '2024-03-01',
-    expiryDate: '2026-02-28',
-    quantityAffected: '80',
-    complaintType: 'Label Printing Smudge',
-    complaintDate: '2024-08-15',
-    description:
-      'Barcode smudged on secondary carton outer box; tertiary lot label remained fully legible.',
-    initialSeverity: 'Minor',
-    priority: 'Low',
-    status: 'Resolved',
-    createdAt: '2024-08-15 16:45',
-  },
-];
+const initialPastComplaints: ComplaintRecord[] = [];
 
 const initialState: ComplaintState = {
   form: initialFormData,
@@ -250,30 +179,6 @@ export const complaintSlice = createSlice({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
     },
-    saveComplaint: (state) => {
-      const newId = `CMP-${Math.floor(1000 + Math.random() * 9000)}`;
-      const newTicketNumber = `QA-2024-${state.pastComplaints.length + 101}`;
-      const now = new Date();
-      const createdAtStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-        now.getDate()
-      ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-      const newRecord: ComplaintRecord = {
-        ...state.form,
-        id: newId,
-        ticketNumber: newTicketNumber,
-        status: 'Pending Triage',
-        createdAt: createdAtStr,
-      };
-
-      state.pastComplaints.unshift(newRecord);
-      state.savedComplaintsCount = state.pastComplaints.length;
-      state.lastSavedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    },
-    deleteComplaint: (state, action: PayloadAction<string>) => {
-      state.pastComplaints = state.pastComplaints.filter((c) => c.id !== action.payload);
-      state.savedComplaintsCount = state.pastComplaints.length;
-    },
   },
 });
 
@@ -290,8 +195,6 @@ export const {
   toggleTheme,
   setTheme,
   addChatMessage,
-  saveComplaint,
-  deleteComplaint,
 } = complaintSlice.actions;
 
 export default complaintSlice.reducer;

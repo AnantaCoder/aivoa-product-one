@@ -46,10 +46,53 @@ export const complaintApi = baseApi.injectEndpoints({
         body,
       }),
     }),
+    getComplaints: builder.query<any[], void>({
+      query: () => '/complaints',
+    }),
+    createComplaint: builder.mutation<any, Partial<ComplaintFormData>>({
+      query: (body) => ({
+        url: '/complaints',
+        method: 'POST',
+        body,
+      }),
+    }),
+    chatWithCopilot: builder.mutation<
+      { reply: string; form_updates?: Partial<ComplaintFormData> },
+      { message: string; complaint_data?: Partial<ComplaintFormData>; history?: any[] }
+    >({
+      query: (body) => ({
+        url: '/complaints/chat',
+        method: 'POST',
+        body,
+      }),
+    }),
+    assessRisk: builder.mutation<
+      {
+        initialSeverity: string;
+        priority: string;
+        riskCategory: string;
+        riskRationale: string;
+        suggestedCapa: string;
+        aiSummary: string;
+      },
+      { productName: string; batchNumber: string; description: string }
+    >({
+      query: (body) => ({
+        url: '/complaints/risk-assessment',
+        method: 'POST',
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useAnalyzeComplaintMutation } = complaintApi;
+export const { 
+  useAnalyzeComplaintMutation, 
+  useGetComplaintsQuery, 
+  useCreateComplaintMutation,
+  useChatWithCopilotMutation,
+  useAssessRiskMutation
+} = complaintApi;
 
 export function normalizeAnalysisResponse(res: RawAnalyzeResponse): {
   form: Partial<ComplaintFormData>;

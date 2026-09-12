@@ -1,13 +1,7 @@
 import React from 'react';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
-import {
-  populateForm,
-  setTheme,
-  addChatMessage,
-  setProgress,
-} from '../features/complaint/complaintSlice';
-import { samplePharmaComplaint } from '../utils/sampleData';
-import { Moon, Sun, Zap, CheckCircle } from 'lucide-react';
+import { setTheme } from '../features/complaint/complaintSlice';
+import { Moon, Sun } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 
 export const Header: React.FC = () => {
@@ -16,25 +10,11 @@ export const Header: React.FC = () => {
   const pastComplaintsCount = useAppSelector(
     (state) => state.complaint.pastComplaints.length
   );
-  const [copiedNotification, setCopiedNotification] = React.useState(false);
 
   const handleToggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     dispatch(setTheme(newTheme));
     document.documentElement.setAttribute('data-theme', newTheme);
-  };
-
-  const handleLoadSample = () => {
-    dispatch(populateForm(samplePharmaComplaint));
-    dispatch(setProgress(100));
-    dispatch(
-      addChatMessage({
-        sender: 'ai',
-        text: 'Loaded sample pharmaceutical complaint: Ceftriaxone 1g Injection (Batch CTX-2024-09B). All form fields populated.',
-      })
-    );
-    setCopiedNotification(true);
-    setTimeout(() => setCopiedNotification(false), 2500);
   };
 
   return (
@@ -84,24 +64,6 @@ export const Header: React.FC = () => {
           <span className="dot" />
           <span>Endpoint: POST /analyze</span>
         </div>
-
-        <button
-          className="action-btn-sm"
-          onClick={handleLoadSample}
-          title="Autofill form with realistic pharmaceutical QA complaint data"
-        >
-          {copiedNotification ? (
-            <>
-              <CheckCircle size={14} color="#10b981" />
-              <span>Loaded Sample!</span>
-            </>
-          ) : (
-            <>
-              <Zap size={14} color="#f59e0b" />
-              <span>Load Sample Complaint</span>
-            </>
-          )}
-        </button>
 
         <button
           className="theme-toggle-btn"
