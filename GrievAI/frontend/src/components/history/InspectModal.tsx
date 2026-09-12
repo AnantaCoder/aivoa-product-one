@@ -95,7 +95,7 @@ export const InspectModal: React.FC<InspectModalProps> = ({
           </div>
 
           {(selectedRecord.riskCategory || selectedRecord.aiSummary || selectedRecord.suggestedCapa) && (
-            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'var(--bg-subtle)', borderRadius: '6px', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
               <h4 style={{ fontSize: '14px', marginBottom: '8px', color: 'var(--text-primary)' }}>AI Risk Assessment</h4>
               {selectedRecord.riskCategory && (
                 <div style={{ marginBottom: '4px', fontSize: '13px' }}><strong>Category:</strong> {selectedRecord.riskCategory}</div>

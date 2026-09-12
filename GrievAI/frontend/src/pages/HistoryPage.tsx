@@ -134,7 +134,7 @@ export const HistoryPage: React.FC = () => {
 
         <div className="filter-group">
           <div className="filter-item">
-            <Filter size={14} color="var(--text-muted)" />
+            <Filter size={14} color="var(--text-primary)" />
             <select
               className="table-filter-select"
               value={severityFilter}
