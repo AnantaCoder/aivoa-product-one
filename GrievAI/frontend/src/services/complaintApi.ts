@@ -41,7 +41,7 @@ export const complaintApi = baseApi.injectEndpoints({
       FormData | { text: string; [key: string]: unknown }
     >({
       query: (body) => ({
-        url: '/analyze',
+        url: '/complaints/analyze',
         method: 'POST',
         body,
       }),

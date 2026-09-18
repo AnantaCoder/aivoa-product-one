@@ -24,7 +24,6 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(complaints.router, prefix="/api/complaints", tags=["Complaints"])
-app.include_router(complaints.router, prefix="/api", tags=["Legacy Compatibility"]) # For /api/analyze fallback
 app.include_router(chat.router, prefix="/api/complaints", tags=["Chat Copilot"])
 
 @app.get("/")

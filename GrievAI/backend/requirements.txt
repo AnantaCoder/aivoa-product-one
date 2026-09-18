@@ -16,3 +16,4 @@ pypdf
 python-docx
 aiofiles
 email-validator
+psycopg2-binary

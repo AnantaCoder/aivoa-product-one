@@ -23,7 +23,6 @@ from app.services.llm_client import get_llm
 router = APIRouter()
 
 @router.post("/analyze", response_model=ExtractedComplaintResponse)
-@router.post("/extract", response_model=ExtractedComplaintResponse)
 async def extract_complaint(
     request: Request,
     text: Optional[str] = Form(None),
@@ -31,7 +30,6 @@ async def extract_complaint(
 ):
     """
     Extract structured fields from raw complaint text or uploaded document (PDF/DOCX/EML/TXT).
-    Endpoints /analyze and /extract are aliased to support existing frontend integrations.
     """
     raw_text = ""
     filename = None
